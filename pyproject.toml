@@ -9,6 +9,27 @@ readme = "README.md"
 python = "^3.12"
 
 
+[tool.poetry.group.dev.dependencies]
+isort = "^5.13.2"
+black = "^24.4.2"
+taskipy = "^1.12.2"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+force-exclude = "/(?!insight_python|tests)[^/]+/"
+
+[tool.isort]
+profile = "black"
+skip = [".venv", "migrations"]
+
+[tool.taskipy.tasks]
+lint = "black --check --diff . && isort --check --diff ."
+format = "black . && isort ."
+run = "uvicorn insight_python.app:app --reload --port 9999"
+prodrun = "FASTAPI_PRODUCTION='true' uvicorn insight_python.main:app --port 9999 --log-level warning"
+pre_test = "task lint"
+test = "pytest -s -x --cov=stock_backend -vv"
+post_test = "coverage html"
