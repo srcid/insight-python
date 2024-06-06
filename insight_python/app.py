@@ -1,9 +1,13 @@
+from pickle import dumps, loads
+from time import time
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Query
 from httpx import AsyncClient
+from toolz import keyfilter
 
-from insight_python.connection import getAsyncClient
+from insight_python.connection import getAsyncClient, getCacheClient
+from insight_python.constants import DAY_IN_SECONDS
 from insight_python.schemes import (
     AlfabetizationRateScheme,
     CityScheme,
@@ -15,10 +19,27 @@ app = FastAPI()
 
 
 @app.get("/cidades")
-async def get_cities(client: AsyncClient = Depends(getAsyncClient)) -> list[CityScheme]:
+async def get_cities(
+    client: AsyncClient = Depends(getAsyncClient), cache=Depends(getCacheClient)
+) -> list[CityScheme]:
     URL = "/v1/localidades/estados/ce/municipios"
+
+    if cities := await cache.get(b"cities"):
+        return loads(cities.value)
+
+    print(cities)
+
     res = await client.get(URL)
-    return res.json()
+    cities = [keyfilter(lambda key: key in ("id", "nome"), d) for d in res.json()]
+
+    await cache.set(
+        b"cities",
+        dumps(cities),
+        exptime=int(time()) + DAY_IN_SECONDS,
+        noreply=True,
+    )
+
+    return cities
 
 
 @app.get("/populacao/periodos")
@@ -44,9 +65,7 @@ async def get_population(
 
     res = await client.get(URL, params={"localidades": f"N6[{cityId}]"})
     year_and_pop: dict[str, str] = res.json()[0]["resultados"][0]["series"][0]["serie"]
-    return [
-        {"year": year, "population": pop} for year, pop in year_and_pop.items()  # type: ignore
-    ]
+    return [{"year": year, "population": pop} for year, pop in year_and_pop.items()]
 
 
 @app.get("/pib/periodos")
@@ -90,4 +109,4 @@ async def get_alfabetization(
     )
     res = await client.get(URL, params={"localidades": f"N6[{cityId}]"})
     year_and_rate: dict[str, str] = res.json()[0]["resultados"][0]["series"][0]["serie"]
-    return [{"year": year, "rate": rate} for year, rate in year_and_rate.items()]  # type: ignore
+    return [{"year": year, "rate": rate} for year, rate in year_and_rate.items()]
