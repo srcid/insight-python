@@ -6,7 +6,7 @@ class CommonConfigs(BaseModel):
 
 
 class CityScheme(CommonConfigs):
-    id: int = Field(alias="id")
+    id: int
     name: str = Field(alias="nome")
 
 
