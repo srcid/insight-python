@@ -2,6 +2,7 @@ from pickle import dumps, loads
 from time import time
 from typing import Annotated
 
+from emcache import Client
 from fastapi import Depends, FastAPI, Query
 from httpx import AsyncClient
 from toolz import keyfilter
@@ -20,7 +21,8 @@ app = FastAPI()
 
 @app.get("/cidades")
 async def get_cities(
-    client: AsyncClient = Depends(getAsyncClient), cache=Depends(getCacheClient)
+    client: AsyncClient = Depends(getAsyncClient),
+    cache: Client = Depends(getCacheClient),
 ) -> list[CityScheme]:
     URL = "/v1/localidades/estados/ce/municipios"
 
@@ -45,11 +47,25 @@ async def get_cities(
 @app.get("/populacao/periodos")
 async def get_population_periods(
     client: AsyncClient = Depends(getAsyncClient),
+    cache: Client = Depends(getCacheClient),
 ) -> list[int]:
 
     URL = "/v3/agregados/6579/periodos"
+
+    if periods := await cache.get(b"population/periods"):
+        return loads(periods.value)
+
     res = await client.get(URL)
-    return [period["id"] for period in res.json()]
+    periods = [int(period["id"]) for period in res.json()]
+
+    await cache.set(
+        b"population/periods",
+        dumps(periods),
+        exptime=int(time()) + DAY_IN_SECONDS,
+        noreply=True,
+    )
+
+    return periods
 
 
 @app.get("/populacao/{cityId}")
