@@ -85,10 +85,25 @@ async def get_population(
 
 
 @app.get("/pib/periodos")
-async def get_pib_periods(client=Depends(getAsyncClient)) -> list[int]:
+async def get_pib_periods(
+    client=Depends(getAsyncClient), cache: Client = Depends(getCacheClient)
+) -> list[int]:
     URL = "/v3/agregados/5938/periodos"
+
+    if periods := await cache.get(b"pib/periods"):
+        return loads(periods.value)
+
     res = await client.get(URL)
-    return [period["id"] for period in res.json()]
+    periods = [int(period["id"]) for period in res.json()]
+
+    await cache.set(
+        b"pib/periods",
+        dumps(periods),
+        exptime=int(time()) + DAY_IN_SECONDS,
+        noreply=True,
+    )
+
+    return periods
 
 
 @app.get("/pib/{cityId}")
@@ -103,7 +118,7 @@ async def get_pib(
     )
     res = await client.get(URL, params={"localidades": f"N6[{cityId}]"})
     year_and_value = res.json()[0]["resultados"][0]["series"][0]["serie"]
-    return [{"year": year, "value": value} for year, value in year_and_value.items()]  # type: ignore
+    return [{"year": year, "value": value} for year, value in year_and_value.items()]
 
 
 @app.get("/alfabetizacao/periodos")
