@@ -1,3 +1,4 @@
+from asyncio import gather
 from pickle import dumps, loads
 from time import time
 from typing import Annotated
@@ -13,8 +14,11 @@ from insight_python.constants import (
     AGGREGATED_PIB,
     AGGREGATED_POPULATION,
     DAY_IN_SECONDS,
+    VARIABLE_PIB_CURRENT_PRICES,
+    VARIABLE_POPULATION_ESTIMATED_RESIDENT,
+    VARIBALE_ALFABETIZATION_15_PLUS_PEOPLE,
 )
-from insight_python.helper import get_period
+from insight_python.helper import get_data, get_period
 from insight_python.schemes import (
     AlfabetizationRateScheme,
     CityScheme,
@@ -60,17 +64,31 @@ async def get_population_periods(
 @app.get("/populacao/{cityId}")
 async def get_population(
     cityId: int,
-    periods: Annotated[list[int] | None, Query()] = None,
+    periods: Annotated[list[int] | None, Query(alias="periodos")] = None,
     client: AsyncClient = Depends(getAsyncClient),
+    cache: Client = Depends(getCacheClient),
 ) -> list[PopulationScheme]:
 
-    URL = "/v3/agregados/6579/periodos/{}/variaveis/9324".format(
-        ",".join(map(str, periods)) if periods else "all"
+    if not periods:
+        periods = await get_period(AGGREGATED_POPULATION, cache, client)
+
+    data = await gather(
+        *[
+            get_data(
+                AGGREGATED_POPULATION,
+                period,
+                VARIABLE_POPULATION_ESTIMATED_RESIDENT,
+                cityId,
+                client,
+                cache,
+            )
+            for period in periods
+        ]
     )
 
-    res = await client.get(URL, params={"localidades": f"N6[{cityId}]"})
-    year_and_pop: dict[str, str] = res.json()[0]["resultados"][0]["series"][0]["serie"]
-    return [{"year": year, "population": pop} for year, pop in year_and_pop.items()]
+    return [
+        PopulationScheme(year=year, population=population) for year, population in data
+    ]
 
 
 @app.get("/pib/periodos")
@@ -86,14 +104,27 @@ async def get_pib(
     cityId: int,
     periods: Annotated[list[int] | None, Query()] = None,
     client: AsyncClient = Depends(getAsyncClient),
+    cache: Client = Depends(getCacheClient),
 ) -> list[PIBScheme]:
 
-    URL = "/v3/agregados/5938/periodos/{}/variaveis/37".format(
-        ",".join(map(str, periods)) if periods else "all"
+    if not periods:
+        periods = await get_period(AGGREGATED_PIB, cache, client)
+
+    data = await gather(
+        *[
+            get_data(
+                AGGREGATED_PIB,
+                period,
+                VARIABLE_PIB_CURRENT_PRICES,
+                cityId,
+                client,
+                cache,
+            )
+            for period in periods
+        ]
     )
-    res = await client.get(URL, params={"localidades": f"N6[{cityId}]"})
-    year_and_value = res.json()[0]["resultados"][0]["series"][0]["serie"]
-    return [{"year": year, "value": value} for year, value in year_and_value.items()]
+
+    return [PIBScheme(year=year, value=value) for year, value in data]
 
 
 @app.get("/alfabetizacao/periodos")
@@ -109,11 +140,24 @@ async def get_alfabetization(
     cityId: int,
     periods: Annotated[list[int] | None, Query()] = None,
     client: AsyncClient = Depends(getAsyncClient),
+    cache: Client = Depends(getCacheClient),
 ) -> list[AlfabetizationRateScheme]:
 
-    URL = "/v3/agregados/9543/periodos/{}/variaveis/2513".format(
-        ",".join(map(str, periods)) if periods else "all"
+    if not periods:
+        periods = await get_period(AGGREGATED_POPULATION, cache, client)
+
+    data = await gather(
+        *[
+            get_data(
+                AGGREGATED_ALFABETIZATION,
+                period,
+                VARIBALE_ALFABETIZATION_15_PLUS_PEOPLE,
+                cityId,
+                client,
+                cache,
+            )
+            for period in periods
+        ]
     )
-    res = await client.get(URL, params={"localidades": f"N6[{cityId}]"})
-    year_and_rate: dict[str, str] = res.json()[0]["resultados"][0]["series"][0]["serie"]
-    return [{"year": year, "rate": rate} for year, rate in year_and_rate.items()]
+
+    return [AlfabetizationRateScheme(year=year, rate=rate) for year, rate in data]
