@@ -1,6 +1,8 @@
 import emcache
 from httpx import AsyncClient
 
+from insight_python.settings import settings
+
 
 async def getAsyncClient():
     async with AsyncClient(
@@ -11,7 +13,7 @@ async def getAsyncClient():
 
 async def getCacheClient():
     client = await emcache.create_client(
-        [emcache.MemcachedHostAddress("memcached", 11211)]
+        [emcache.MemcachedHostAddress(settings.MEMCACHED_URL, 11211)]
     )
     yield client
     await client.close()
