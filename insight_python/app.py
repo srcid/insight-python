@@ -8,7 +8,13 @@ from httpx import AsyncClient
 from toolz import keyfilter
 
 from insight_python.connection import getAsyncClient, getCacheClient
-from insight_python.constants import DAY_IN_SECONDS
+from insight_python.constants import (
+    AGGREGATED_ALFABETIZATION,
+    AGGREGATED_PIB,
+    AGGREGATED_POPULATION,
+    DAY_IN_SECONDS,
+)
+from insight_python.helper import get_period
 from insight_python.schemes import (
     AlfabetizationRateScheme,
     CityScheme,
@@ -29,8 +35,6 @@ async def get_cities(
     if cities := await cache.get(b"cities"):
         return loads(cities.value)
 
-    print(cities)
-
     res = await client.get(URL)
     cities = [keyfilter(lambda key: key in ("id", "nome"), d) for d in res.json()]
 
@@ -50,22 +54,7 @@ async def get_population_periods(
     cache: Client = Depends(getCacheClient),
 ) -> list[int]:
 
-    URL = "/v3/agregados/6579/periodos"
-
-    if periods := await cache.get(b"population/periods"):
-        return loads(periods.value)
-
-    res = await client.get(URL)
-    periods = [int(period["id"]) for period in res.json()]
-
-    await cache.set(
-        b"population/periods",
-        dumps(periods),
-        exptime=int(time()) + DAY_IN_SECONDS,
-        noreply=True,
-    )
-
-    return periods
+    return await get_period(AGGREGATED_POPULATION, cache, client)
 
 
 @app.get("/populacao/{cityId}")
@@ -88,22 +77,8 @@ async def get_population(
 async def get_pib_periods(
     client=Depends(getAsyncClient), cache: Client = Depends(getCacheClient)
 ) -> list[int]:
-    URL = "/v3/agregados/5938/periodos"
 
-    if periods := await cache.get(b"pib/periods"):
-        return loads(periods.value)
-
-    res = await client.get(URL)
-    periods = [int(period["id"]) for period in res.json()]
-
-    await cache.set(
-        b"pib/periods",
-        dumps(periods),
-        exptime=int(time()) + DAY_IN_SECONDS,
-        noreply=True,
-    )
-
-    return periods
+    return await get_period(AGGREGATED_PIB, cache, client)
 
 
 @app.get("/pib/{cityId}")
@@ -125,20 +100,8 @@ async def get_pib(
 async def get_alfabetization_periods(
     client=Depends(getAsyncClient), cache: Client = Depends(getCacheClient)
 ) -> list[int]:
-    URL = "/v3/agregados/9543/periodos"
 
-    if periods := await cache.get(b"alfabetization/periods"):
-        return loads(periods.value)
-
-    res = await client.get(URL)
-    periods = [int(period["id"]) for period in res.json()]
-
-    await cache.set(
-        b"alfabetization/periods",
-        dumps(periods),
-        exptime=int(time()) + DAY_IN_SECONDS,
-        noreply=True,
-    )
+    return await get_period(AGGREGATED_ALFABETIZATION, cache, client)
 
 
 @app.get("/alfabetizacao/{cityId}")
