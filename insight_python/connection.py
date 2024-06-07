@@ -11,7 +11,7 @@ async def getAsyncClient():
 
 async def getCacheClient():
     client = await emcache.create_client(
-        [emcache.MemcachedHostAddress("172.17.0.2", 11211)]
+        [emcache.MemcachedHostAddress("memcached", 11211)]
     )
     yield client
     await client.close()
