@@ -122,10 +122,23 @@ async def get_pib(
 
 
 @app.get("/alfabetizacao/periodos")
-async def get_alfabetization_periods(client=Depends(getAsyncClient)) -> list[int]:
+async def get_alfabetization_periods(
+    client=Depends(getAsyncClient), cache: Client = Depends(getCacheClient)
+) -> list[int]:
     URL = "/v3/agregados/9543/periodos"
+
+    if periods := await cache.get(b"alfabetization/periods"):
+        return loads(periods.value)
+
     res = await client.get(URL)
-    return [period["id"] for period in res.json()]
+    periods = [int(period["id"]) for period in res.json()]
+
+    await cache.set(
+        b"alfabetization/periods",
+        dumps(periods),
+        exptime=int(time()) + DAY_IN_SECONDS,
+        noreply=True,
+    )
 
 
 @app.get("/alfabetizacao/{cityId}")
