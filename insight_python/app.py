@@ -14,9 +14,9 @@ from insight_python.constants import (
     AGGREGATED_PIB,
     AGGREGATED_POPULATION,
     DAY_IN_SECONDS,
+    VARIABLE_ALFABETIZATION_15_PLUS_PEOPLE,
     VARIABLE_PIB_CURRENT_PRICES,
     VARIABLE_POPULATION_ESTIMATED_RESIDENT,
-    VARIBALE_ALFABETIZATION_15_PLUS_PEOPLE,
 )
 from insight_python.helper import get_data, get_period
 from insight_python.schemes import (
@@ -144,14 +144,14 @@ async def get_alfabetization(
 ) -> list[AlfabetizationRateScheme]:
 
     if not periods:
-        periods = await get_period(AGGREGATED_POPULATION, cache, client)
+        periods = await get_period(AGGREGATED_ALFABETIZATION, cache, client)
 
     data = await gather(
         *[
             get_data(
                 AGGREGATED_ALFABETIZATION,
                 period,
-                VARIBALE_ALFABETIZATION_15_PLUS_PEOPLE,
+                VARIABLE_ALFABETIZATION_15_PLUS_PEOPLE,
                 cityId,
                 client,
                 cache,
