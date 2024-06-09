@@ -1,6 +1,3 @@
-import urllib
-import urllib.parse
-
 import emcache
 from httpx import AsyncClient
 
@@ -16,23 +13,11 @@ async def getAsyncClient():
 
 async def getCacheClient():
     servers = []
-    for uri in settings.MEMCACHIER_SERVERS.split(","):
+    for uri in settings.MEMCACHED_SERVERS.split(","):
         url, port = uri.split(":")
         port = int(port)
-        servers.append(
-            emcache.MemcachedHostAddress(
-                url
-                + "?"
-                + urllib.parse.urlencode(
-                    {
-                        "username": settings.MEMCACHIER_USERNAME,
-                        "password": settings.MEMCACHIER_PASSWORD,
-                    }
-                ),
-                port,
-            )
-        )
+        servers.append(emcache.MemcachedHostAddress(url, port))
 
-    client = await emcache.create_client(servers)
+    client = await emcache.create_client(servers, timeout=20)
     yield client
     await client.close()
