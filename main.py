@@ -9,7 +9,7 @@ if __name__ == "__main__":
         run(
             "insight_python.app:app",
             host="0.0.0.0",
-            port=9999,
+            port=settings.PORT,
             reload=True,
             reload_dirs=["insight_python"],
         )
