@@ -5,28 +5,37 @@ from typing import Annotated
 
 from emcache import Client
 from fastapi import Depends, FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from httpx import AsyncClient
 from toolz import keyfilter
 
 from insight_python.connection import getAsyncClient, getCacheClient
 from insight_python.constants import (
-    AGGREGATED_ALFABETIZATION,
-    AGGREGATED_PIB,
+    AGGREGATED_GDP,
+    AGGREGATED_LITERACY,
     AGGREGATED_POPULATION,
     DAY_IN_SECONDS,
-    VARIABLE_ALFABETIZATION_15_PLUS_PEOPLE,
-    VARIABLE_PIB_CURRENT_PRICES,
+    VARIABLE_GDP_CURRENT_PRICES,
+    VARIABLE_LITERACY_15_PLUS_PEOPLE,
     VARIABLE_POPULATION_ESTIMATED_RESIDENT,
 )
 from insight_python.helper import get_data, get_period
 from insight_python.schemes import (
-    AlfabetizationRateScheme,
     CityScheme,
-    PIBScheme,
+    GDPScheme,
+    LiteracyRateScheme,
     PopulationScheme,
 )
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/cidades")
@@ -36,8 +45,8 @@ async def get_cities(
 ) -> list[CityScheme]:
     URL = "/v1/localidades/estados/ce/municipios"
 
-    if cities := await cache.get(b"cities"):
-        return loads(cities.value)
+    if res_cache := await cache.get(b"cities"):
+        return loads(res_cache.value)
 
     res = await client.get(URL)
     cities = [keyfilter(lambda key: key in ("id", "nome"), d) for d in res.json()]
@@ -49,7 +58,7 @@ async def get_cities(
         noreply=True,
     )
 
-    return cities
+    return [CityScheme(**city) for city in cities]
 
 
 @app.get("/populacao/periodos")
@@ -96,26 +105,26 @@ async def get_pib_periods(
     client=Depends(getAsyncClient), cache: Client = Depends(getCacheClient)
 ) -> list[int]:
 
-    return await get_period(AGGREGATED_PIB, cache, client)
+    return await get_period(AGGREGATED_GDP, cache, client)
 
 
 @app.get("/pib/{cityId}")
 async def get_pib(
     cityId: int,
-    periods: Annotated[list[int] | None, Query()] = None,
+    periods: Annotated[list[int] | None, Query(alias="periodos")] = None,
     client: AsyncClient = Depends(getAsyncClient),
     cache: Client = Depends(getCacheClient),
-) -> list[PIBScheme]:
+) -> list[GDPScheme]:
 
     if not periods:
-        periods = await get_period(AGGREGATED_PIB, cache, client)
+        periods = await get_period(AGGREGATED_GDP, cache, client)
 
     data = await gather(
         *[
             get_data(
-                AGGREGATED_PIB,
+                AGGREGATED_GDP,
                 period,
-                VARIABLE_PIB_CURRENT_PRICES,
+                VARIABLE_GDP_CURRENT_PRICES,
                 cityId,
                 client,
                 cache,
@@ -124,7 +133,7 @@ async def get_pib(
         ]
     )
 
-    return [PIBScheme(year=year, value=value) for year, value in data]
+    return [GDPScheme(year=year, value=value) for year, value in data]
 
 
 @app.get("/alfabetizacao/periodos")
@@ -132,26 +141,26 @@ async def get_alfabetization_periods(
     client=Depends(getAsyncClient), cache: Client = Depends(getCacheClient)
 ) -> list[int]:
 
-    return await get_period(AGGREGATED_ALFABETIZATION, cache, client)
+    return await get_period(AGGREGATED_LITERACY, cache, client)
 
 
 @app.get("/alfabetizacao/{cityId}")
 async def get_alfabetization(
     cityId: int,
-    periods: Annotated[list[int] | None, Query()] = None,
+    periods: Annotated[list[int] | None, Query(alias="periodos")] = None,
     client: AsyncClient = Depends(getAsyncClient),
     cache: Client = Depends(getCacheClient),
-) -> list[AlfabetizationRateScheme]:
+) -> list[LiteracyRateScheme]:
 
     if not periods:
-        periods = await get_period(AGGREGATED_ALFABETIZATION, cache, client)
+        periods = await get_period(AGGREGATED_LITERACY, cache, client)
 
     data = await gather(
         *[
             get_data(
-                AGGREGATED_ALFABETIZATION,
+                AGGREGATED_LITERACY,
                 period,
-                VARIABLE_ALFABETIZATION_15_PLUS_PEOPLE,
+                VARIABLE_LITERACY_15_PLUS_PEOPLE,
                 cityId,
                 client,
                 cache,
@@ -160,4 +169,4 @@ async def get_alfabetization(
         ]
     )
 
-    return [AlfabetizationRateScheme(year=year, rate=rate) for year, rate in data]
+    return [LiteracyRateScheme(year=year, rate=rate) for year, rate in data]

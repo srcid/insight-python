@@ -12,14 +12,14 @@ class CityScheme(CommonConfigs):
 
 class PopulationScheme(CommonConfigs):
     year: int = Field(alias="ano")
-    population: int = Field(alias="population")
+    population: int = Field(alias="populacao")
 
 
-class PIBScheme(CommonConfigs):
+class GDPScheme(CommonConfigs):
     year: int = Field(alias="ano")
     value: int = Field(alias="valor")
 
 
-class AlfabetizationRateScheme(CommonConfigs):
+class LiteracyRateScheme(CommonConfigs):
     year: int = Field(alias="ano")
     rate: float = Field(alias="taxa")
