@@ -1,5 +1,6 @@
 from pickle import dumps, loads
 from time import time
+from typing import Any
 
 from emcache import Client
 from httpx import AsyncClient
@@ -11,8 +12,8 @@ async def get_period(aggregated: int, cache: Client, client: AsyncClient) -> lis
     URL = f"/v3/agregados/{aggregated}/periodos"
     KEY = bytes(f"{aggregated}", encoding="ascii")
 
-    if periods := await cache.get(KEY):
-        return loads(periods.value)
+    if periods_cache := await cache.get(KEY):
+        return loads(periods_cache.value)
 
     res = await client.get(URL)
     periods = [int(period["id"]) for period in res.json()]
@@ -34,15 +35,15 @@ async def get_data(
     cityId: int,
     client: AsyncClient,
     cache: Client,
-) -> list[str, str]:
+) -> Any:
     URL = f"/v3/agregados/{aggregated}/periodos/{period}/variaveis/{variable}"
     KEY = bytes(f"{cityId}/{aggregated}/{period}", encoding="ascii")
 
-    if data := await cache.get(KEY):
-        return loads(data.value)
+    if data_cache := await cache.get(KEY):
+        return loads(data_cache.value)
 
     res = await client.get(URL, params={"localidades": f"N6[{cityId}]"})
-    data, *_ = res.json()[0]["resultados"][0]["series"][0]["serie"].items()
+    data = res.json()[0]["resultados"][0]["series"][0]["serie"][f"{period}"]
 
     await cache.set(
         KEY,
