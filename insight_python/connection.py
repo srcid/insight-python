@@ -6,7 +6,7 @@ from insight_python.settings import settings
 
 async def getAsyncClient():
     async with AsyncClient(
-        base_url="https://servicodados.ibge.gov.br/api", timeout=5
+        base_url="https://servicodados.ibge.gov.br/api", timeout=10
     ) as client:
         yield client
 
