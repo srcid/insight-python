@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     MEMCACHIER_SERVERS: str
     MEMCACHIER_USERNAME: str
     FASTAPI_PRODUCTION: bool = False
+    PORT: int
 
 
 settings = Settings()
