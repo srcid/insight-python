@@ -1,0 +1,21 @@
+services:
+  memcached:
+    image: memcached:1.6.28-alpine3.20
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile-dev
+    command: [ "sleep infinity" ]
+    depends_on:
+      - memcached
+    volumes:
+      - type: bind
+        source: ./devcontainer-root/
+        target: /root/
+      - type: bind
+        source: ./
+        target: /app/

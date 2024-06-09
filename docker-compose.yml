@@ -1,0 +1,19 @@
+services:
+  memcached:
+    image: memcached:1.6.28-alpine3.20
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    depends_on:
+      - memcached
+    environment:
+      FASTAPI_PRODUCTION: true
+      PORT: 9999
+      MEMCACHED_SERVERS: "memcached:11211"
+    ports:
+      - 9999:9999
