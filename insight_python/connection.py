@@ -16,7 +16,7 @@ async def getAsyncClient():
 
 async def getCacheClient():
     servers = []
-    for uri in settings.MEMCACHEDCLOUD_SERVERS.split(","):
+    for uri in settings.MEMCACHIER_SERVERS.split(","):
         url, port = uri.split(":")
         port = int(port)
         servers.append(
@@ -25,8 +25,8 @@ async def getCacheClient():
                 + "?"
                 + urllib.parse.urlencode(
                     {
-                        "username": settings.MEMCACHEDCLOUD_USERNAME,
-                        "password": settings.MEMCACHEDCLOUD_PASSWORD,
+                        "username": settings.MEMCACHIER_USERNAME,
+                        "password": settings.MEMCACHIER_PASSWORD,
                     }
                 ),
                 port,
