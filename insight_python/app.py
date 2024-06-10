@@ -77,7 +77,7 @@ async def get_population_periods(
     try:
         return await get_period(AGGREGATED_POPULATION, cache, client)
 
-    except httpx.TimeoutException:
+    except httpx.TimeoutException | httpx.ReadTimeout:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail=f"The IBGE API seem to be unavailable right now, try again in a few minutes.",
@@ -114,7 +114,7 @@ async def get_population(
             PopulationScheme(year=year, population=population)
             for year, population in zip(periods, data)
         ]
-    except httpx.TimeoutException:
+    except httpx.TimeoutException | httpx.ReadTimeout:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="The IBGE API seem to be unavailable right now, try again in a few minutes.",
@@ -132,7 +132,7 @@ async def get_pib_periods(
 ) -> list[int]:
     try:
         return await get_period(AGGREGATED_GDP, cache, client)
-    except httpx.TimeoutException:
+    except httpx.TimeoutException | httpx.ReadTimeout:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="The IBGE API seem to be unavailable right now, try again in a few minutes.",
@@ -167,7 +167,7 @@ async def get_pib(
 
         return [GDPScheme(year=year, value=value) for year, value in zip(periods, data)]
 
-    except httpx.TimeoutException:
+    except httpx.TimeoutException | httpx.ReadTimeout:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="The IBGE API seem to be unavailable right now, try again in a few minutes",
@@ -186,7 +186,7 @@ async def get_alfabetization_periods(
 
     try:
         return await get_period(AGGREGATED_LITERACY, cache, client)
-    except httpx.TimeoutException:
+    except httpx.TimeoutException | httpx.ReadTimeout:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="The IBGE API seem to be unavailable right now, try again in a few minutes",
@@ -223,7 +223,7 @@ async def get_alfabetization(
             for year, rate in zip(periods, data)
         ]
 
-    except httpx.TimeoutException:
+    except httpx.TimeoutException | httpx.ReadTimeout:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="The IBGE API seem to be unavailable right now, try again in a few minutes",
