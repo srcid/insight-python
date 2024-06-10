@@ -4,7 +4,7 @@ FastAPI backend sample for InsightLab job position.
 
 ## Front-end
 
-O front-end desse projeto encontra-se no seguinte repósitorio srcid/rAPIdinho.
+The frontend of this project can be found [here](https://github.com/srcid/insight-frontend).
 
 ## IBGE endpoints used
 
